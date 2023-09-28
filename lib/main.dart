@@ -1,8 +1,11 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
+  await Hive.initFlutter();
+  await Hive.openBox("Favorites");
   runApp(MyApp());
 }
 
@@ -34,13 +37,14 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  var favorites = <WordPair>[];
+  final favoritesdb = Hive.box("Favorites");
 
   void toogleFavorite() {
-    if (favorites.contains(current)) {
-      favorites.remove(current);
+    String wordPairAsString = current.first + ' ' + current.second;
+    if (favoritesdb.get(wordPairAsString) != null) {
+      favoritesdb.delete(wordPairAsString);
     } else {
-      favorites.add(current);
+      favoritesdb.put(wordPairAsString, "");
     }
     notifyListeners();
   }
@@ -102,7 +106,7 @@ class GeneratorPage extends StatelessWidget {
     var pair = appState.current;
 
     IconData icon;
-    if (appState.favorites.contains(pair)) {
+    if (appState.favoritesdb.get(pair.first + ' ' + pair.second) != null) {
       icon = Icons.favorite;
     } else {
       icon = Icons.favorite_border;
@@ -172,7 +176,7 @@ class FavPage extends StatelessWidget {
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
 
-    if (appState.favorites.isEmpty) {
+    if (appState.favoritesdb.isEmpty) {
       return Center(
         child: Text('No favorites yet.'),
       );
@@ -183,12 +187,12 @@ class FavPage extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(20),
           child: Text('You have '
-              '${appState.favorites.length} favorites:'),
+              '${appState.favoritesdb.length} favorites:'),
         ),
-        for (var pair in appState.favorites)
+        for (var pair in appState.favoritesdb.keys)
           ListTile(
             leading: Icon(Icons.favorite),
-            title: Text(pair.asLowerCase),
+            title: Text(pair),
           ),
       ],
     );
